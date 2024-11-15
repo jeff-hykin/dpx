@@ -218,12 +218,11 @@ if (install) {
         }
         
         // install it 
-        console.debug(`import.meta is:`,import.meta)
         var command = new Deno.Command(Deno.execPath(), {
             args: [
                 "run",
                 "-A",
-                import.meta.filename,
+                import.meta.url,
                 "--install",
                 "--allow-all",
                 `npm:${taskName}`,
