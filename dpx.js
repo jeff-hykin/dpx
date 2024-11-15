@@ -218,11 +218,13 @@ if (install) {
         }
         
         // install it 
+        const aPath = (new URL(import.meta.resolve("."))).pathname
+        console.debug(`aPath is:`,aPath)
         var command = new Deno.Command(Deno.execPath(), {
             args: [
                 "run",
                 "-A",
-                FileSystem.thisFile,
+                (new URL(import.meta.resolve("."))).pathname,
                 "--install",
                 "--allow-all",
                 `npm:${taskName}`,
