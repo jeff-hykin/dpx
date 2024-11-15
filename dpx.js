@@ -218,6 +218,7 @@ if (install) {
         }
         
         // install it 
+        console.debug(`import.meta is:`,import.meta)
         var command = new Deno.Command(Deno.execPath(), {
             args: [
                 "run",
