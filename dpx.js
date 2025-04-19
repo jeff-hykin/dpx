@@ -4,7 +4,7 @@ import { parseArgs, flag, required, initialValue } from "https://deno.land/x/goo
 import { toCamelCase } from "https://deno.land/x/good@1.13.1.0/flattened/to_camel_case.js"
 import { didYouMean } from "https://deno.land/x/good@1.13.1.0/flattened/did_you_mean.js"
 import * as Path from "https://deno.land/std@0.128.0/path/mod.ts"
-
+import { parse } from "https://esm.sh/@jsr/std__jsonc@1.0.1";
 
 const shellEscape = (arg)=>{
     if (arg.match(/^[a-zA-Z_@\-:\.\/]+$/)) {
@@ -122,13 +122,17 @@ if (install) {
     // 
     // load deno.json
     // 
-        const firstAttempt = await walkUpUntil(["deno.json","deno.lock"])
+        const firstAttempt = await walkUpUntil(["deno.json","deno.jsonc","deno.lock"])
         const projectFolder = firstAttempt || (await walkUpUntil(["package.json",".git","node_modules"]))||await Deno.cwd()
-        const denoJsonPath = `${projectFolder}/deno.json`
-        const pathInfo = await Deno.lstat(denoJsonPath).catch(()=>({doesntExist: true}))
-        let currentJson = {}
-        if (!pathInfo.doesntExist) {
-            currentJson = JSON.parse(FileSystem.sync.read(denoJsonPath))
+        let denoJsonPath = `${projectFolder}/deno.jsonc`
+        let denoJsonString
+        let currentJson
+        if (denoJsonString = FileSystem.sync.read(denoJsonPath)) {
+            currentJson = parse(denoJsonString)
+        } else if (denoJsonString = FileSystem.sync.read(denoJsonPath=denoJsonPath.slice(0,-1))) {
+            currentJson = parse(denoJsonString)
+        } else {
+            currentJson = {}
         }
         currentJson["tasks"] = currentJson["tasks"]||{}
         if (currentJson["tasks"] instanceof Array || !(currentJson["tasks"] instanceof Object)) {
@@ -162,7 +166,7 @@ if (install) {
             data: JSON.stringify(currentJson, 0, 2),
             path: denoJsonPath,
         })
-        console.log(`Done! ${green(installName)} added to deno.json. Try it now with ${cyan`dpx ${shellEscape(installName)}`}`)
+        console.log(`Done! ${green(installName)} added to ${FileSystem.basename(denoJsonPath)}. Try it now with ${cyan`dpx ${shellEscape(installName)}`}`)
     
     Deno.exit(0)
 }
@@ -174,13 +178,13 @@ if (install) {
     // 
     // load deno.json
     // 
-    const firstAttempt = await walkUpUntil(["deno.json",])
+    const firstAttempt = await walkUpUntil(["deno.jsonc", "deno.json",])
     let currentJson = {}
     if (firstAttempt) {
-        const denoJsonPath = `${firstAttempt}/deno.json`
-        const pathInfo = await Deno.lstat(denoJsonPath).catch(()=>({doesntExist: true}))
-        if (!pathInfo.doesntExist) {
-            currentJson = JSON.parse(FileSystem.sync.read(denoJsonPath))
+        const denoJsonPath = `${firstAttempt}/deno.jsonc`
+        const denoJsonString = FileSystem.sync.read(denoJsonPath)||FileSystem.sync.read(denoJsonPath.slice(0,-1))
+        if (denoJsonString) {
+            currentJson = parse(denoJsonString)
         }
     } else {
         const projectFolder = (await walkUpUntil(["deno.lock", "package.json",".git","node_modules"]))||await Deno.cwd()
@@ -189,7 +193,7 @@ if (install) {
             Deno.exit(1)
         }
         
-        const denoJsonPath = `${projectFolder}/deno.json`
+        const denoJsonPath = `${projectFolder}/deno.jsonc`
         await FileSystem.write({
             data: JSON.stringify(currentJson, 0, 2),
             path: denoJsonPath,
